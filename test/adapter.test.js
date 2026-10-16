@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { createUserMessage, createAssistantMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm';
+import { LlmAdapter, createUserMessage, createAssistantMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm';
 import { buildChatAdapter } from '../src/adapter.js';
 
 test('official adapter preserves tool call roundtrip and credential reference', async t => {
@@ -26,6 +26,12 @@ test('official adapter preserves tool call roundtrip and credential reference', 
   server.listen(0, '127.0.0.1'); await once(server, 'listening'); t.after(() => server.close());
   const ctx = { fiber: {}, logger: console, get: name => name === 'credentials' ? { resolve: async ref => ref === 'TEST_GROK_KEY' ? { value: 'test-secret' } : undefined, readRecord: async () => undefined, listRecords: async () => [] } : undefined };
   const adapter = buildChatAdapter(ctx, { api: 'openai-completions', baseURL: `http://127.0.0.1:${server.address().port}/v1`, apiKeyEnv: 'TEST_GROK_KEY', models: [{ id: 'grok-4.7', contextWindow: 500000, maxTokens: 128 }] });
+  // The capture must yield the official adapter, not a look-alike: this is the
+  // assertion that turns a dsh registration change into a failing test.
+  assert.ok(adapter instanceof LlmAdapter, 'captured adapter must be an official LlmAdapter instance');
+  assert.equal(adapter.providerInfo('grok-all').id, 'grok-all');
+  const catalog = await adapter.listModels('grok-all');
+  assert.deepEqual(catalog.map(x => x.id), ['grok-4.7']);
   const user = createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Use probe then reply.' }] });
   const base = { provider: 'grok-all', model: 'grok-4.7', messages: [user], tools: [{ name: 'probe', description: 'A test tool', parameters: { type: 'object', properties: {}, required: [] } }], maxTokens: 64 };
   const first = []; for await (const chunk of adapter.stream(base)) first.push(chunk);

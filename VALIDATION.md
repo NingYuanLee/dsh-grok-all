@@ -14,6 +14,16 @@
 - 独立 Web profile：工具调用记录展开后，专用 Grok 模型卡片显示 20 个模型的分类。
 - 独立 Web profile：通过 dsh 文件交付打开本地 MP4 与 MP3，在插件侧栏播放器点击播放。视频时长 2.041667 秒、音频时长 2.928 秒，均实际播放至结束，readyState=4，媒体 error=null。
 
+## 安装路径复核（2026-10-16，独立环境）
+
+在另一台环境按发布路径重新走通，并把结果用于修复打包缺陷：
+
+- 仅用提交内容的干净克隆 → `npm install --ignore-scripts` 11.4 秒装好 118 个包（全部来自公共 registry）→ 11 项测试通过 → `npm run build` 产物与仓库一致。
+- 隔离 `DSH_HOME` 的全新 profile：`dsh plugin add <源码目录>` 0.7 秒完成，自动写入该 profile 的 `dsh.profile.bundles`，不需要手工编辑。
+- `npm pack` 产物（模拟已发布包）：`dsh plugin add <tgz>` 后启动成功，插件页显示组件 `grok-all` 运行中，客户端 bundle 正常加载并被 GUI 请求，配置页 8 个字段可读可存，聊天选择器出现 11 个 chat 模型，图片、视频、TTS 未混入。
+- `npm publish --dry-run --tag alpha` 通过：`prepublishOnly` 先跑测试与语法检查，再打包。未真正发布。
+- 本次修复：补 `LICENSE` 与 `license`/`author`/`homepage`；适配器注册失败的真实原因不再被通用提示覆盖并写入 warn 日志；`@deepseek-ai/dsh-llm` 由隐式依赖改为显式 devDependency；新增 `.gitattributes` 固定 LF；CI 增加 Windows 矩阵与发布门禁；测试断言捕获到的是官方 `LlmAdapter` 实例与 `providerInfo`。
+
 ## 当前限制与待验收
 
 - 真实请求测试走本地网关；未逐项测试公网媒体接口、极大文件或超时边界。

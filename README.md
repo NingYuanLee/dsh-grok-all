@@ -40,6 +40,8 @@ dsh --profile grok-all-test --from-default-profile web --dump-config
 dsh plugin --profile grok-all-test add "$PWD"
 ```
 
+`--dump-config` 只创建 profile 目录并打印组合后的配置，不启动服务。`dsh plugin add` 会自动把插件写进该 profile 的 `dsh.profile.bundles`，不需要手动编辑；卸载用 `dsh plugin --profile grok-all-test remove dsh-grok-all`。
+
 在该 profile 的 `cordis.patch.yml` 添加配置覆盖：
 
 ```yaml
@@ -76,12 +78,22 @@ dsh --profile grok-all-test --no-open
 - 第三方媒体下载不携带网关密钥。任务记录可能保存签名 URL，请视为私有数据，不公开同步。
 - 文件删除、链接过期可能无法恢复。播放器加载完整字节，大文件受 dsh 预览限制，可用系统应用打开。
 
+## 许可证
+
+MIT，见 [LICENSE](LICENSE)。Copyright (c) 2026 NingYuanLee。
+
 ## 开发与社区
 
 ```powershell
 npm test
 npm run check
 npm pack --dry-run
+```
+
+`package.json` 的 `publishConfig` 已把发布目标固定为官方 registry 与 `alpha` 标签，本机 registry 指向镜像时也不会发错。发布前先 `npm login`：
+
+```powershell
+npm publish
 ```
 
 待办见 [ROADMAP.md](ROADMAP.md)。仓库按 [dsh 官方社区指引](https://github.com/deepseek-ai/deepseek-harness#community-and-support) 添加 `dsh-plugin` Topic；欢迎通过 Issues 反馈。

@@ -1,0 +1,13 @@
+# Deterministic line endings: the repository stores LF, and Windows CI
+# re-builds lib/client.js and compares it with git diff.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp4 binary
+*.mp3 binary
+*.wav binary
+*.tgz binary

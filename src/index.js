@@ -91,7 +91,14 @@ export async function apply(ctx, config) {
       await rename(temp, target);
       return catalog;
     })().catch(error => {
-      lastError = error?.name === 'TimeoutError' ? '模型发现超时' : error?.message?.startsWith('模型') ? error.message : '模型发现失败，请检查连接、密钥或模型覆盖配置';
+      // A rejected endpoint, a missing key, an invalid base URL and an
+      // incompatible dsh adapter each need a different fix, so keep their own
+      // message. Raw transport and response-shape failures stay generic: their
+      // text names internals the user cannot act on.
+      const message = typeof error?.message === 'string' ? error.message : '';
+      const opaque = error instanceof TypeError || error instanceof SyntaxError || /HTTP \d+/.test(message);
+      lastError = error?.name === 'TimeoutError' ? '模型发现超时' : !message || opaque ? '模型发现失败，请检查连接、密钥或模型覆盖配置' : message;
+      ctx.logger?.warn?.('grok-all: ' + lastError);
       throw new Error(lastError);
     }).finally(() => { refreshPromise = undefined; });
     return refreshPromise;

@@ -2,6 +2,8 @@
   "name": "dsh-grok-all",
   "version": "0.1.0-alpha.1",
   "description": "Native Grok provider and media tools for DeepSeek Harness.",
+  "license": "MIT",
+  "author": "NingYuanLee",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -15,6 +17,8 @@
     "lib/client.js",
     "scripts/build-client.mjs",
     "cordis.patch.yml",
+    "LICENSE",
+    "CHANGELOG.md",
     "README.md",
     "PLAN.md",
     "ROADMAP.md",
@@ -24,7 +28,8 @@
     "build": "node scripts/build-client.mjs",
     "prepack": "npm run build",
     "test": "node --test test/*.test.js",
-    "check": "node --check src/index.js && node --check src/catalog.js && node --check src/media.js && node --check src/client.js"
+    "check": "node --check src/index.js && node --check src/catalog.js && node --check src/media.js && node --check src/client.js",
+    "prepublishOnly": "npm test && npm run check"
   },
   "engines": {
     "node": ">=22.19.0"
@@ -33,6 +38,7 @@
     "type": "git",
     "url": "git+https://github.com/NingYuanLee/dsh-grok-all.git"
   },
+  "homepage": "https://github.com/NingYuanLee/dsh-grok-all#readme",
   "bugs": {
     "url": "https://github.com/NingYuanLee/dsh-grok-all/issues"
   },
@@ -45,6 +51,10 @@
     "video-generation",
     "tts"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "tag": "alpha"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -66,6 +76,7 @@
     "@deepseek-ai/schemastery": "~3.18.4"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
     "esbuild": "^0.28.2",
     "react": "^18.3.1"
   }
