@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.tgz
+.env
+.env.*
+!.env.example
+*.log
+auths/
+credentials/
+generated/
+downloads/
+.DS_Store
+Thumbs.db
