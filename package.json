@@ -1,0 +1,72 @@
+{
+  "name": "dsh-grok-all",
+  "version": "0.1.0-alpha.1",
+  "description": "Native Grok provider and media tools for DeepSeek Harness.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./catalog": "./src/catalog.js",
+    "./media": "./src/media.js",
+    "./client": "./lib/client.js"
+  },
+  "files": [
+    "src",
+    "lib/client.js",
+    "scripts/build-client.mjs",
+    "cordis.patch.yml",
+    "README.md",
+    "PLAN.md",
+    "ROADMAP.md",
+    "VALIDATION.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build-client.mjs",
+    "prepack": "npm run build",
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/index.js && node --check src/catalog.js && node --check src/media.js && node --check src/client.js"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NingYuanLee/dsh-grok-all.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NingYuanLee/dsh-grok-all/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "grok",
+    "xai",
+    "image-generation",
+    "video-generation",
+    "tts"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-tool",
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-llm-pi-ai": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "react": "^18.3.1"
+  }
+}

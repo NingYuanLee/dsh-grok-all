@@ -1,46 +1,89 @@
 # dsh-grok-all
 
-Grok integration for DeepSeek Harness: one plugin for model discovery, chat, image and video generation, and text-to-speech.
+Native Grok integration for DeepSeek Harness: model discovery, chat, image/video generation, TTS and durable local media tasks.
 
-面向 DeepSeek Harness（dsh）的 Grok 集成插件：统一接入聊天与推理、图片与视频生成、语音合成，并管理生成任务和本地文件。
+在 dsh 中统一使用 Grok：原生聊天提供方、自动分类模型、媒体生成和持久任务。
 
-**Status: planning / early development. No installable plugin or npm release is available yet.**
+**Early alpha / 早期开发版。未发布 npm 包。先使用独立测试 profile。实际验证情况见 [VALIDATION.md](VALIDATION.md)。**
 
-**当前状态：规划与早期开发。仓库目前只有项目说明和路线图，尚无可安装插件，也未发布 npm 包。下面的功能是开发目标，并非已经实现。**
+## 定位与功能
 
-## 项目目标
+安装一个插件，配置一套网关连接。聊天选择器只显示聊天模型；图片、视频、TTS 由对应工具调用。聊天模型调用媒体工具，无需切换成 Imagine 或 TTS。
 
-- 原生 dsh 提供方：由插件管理连接、凭据和聊天模型，无需逐个配置自定义模型。
-- 自动发现模型：区分聊天、图片、视频和语音，保留未知类别与手动覆盖；区分“发现”与“验证可用”。
-- 聊天中生成媒体：聊天模型调用图片、视频和语音工具，无需切换聊天模型。
-- 持久生成任务：展示真实状态，支持视频任务查询、失败说明和恢复。
-- 自动保存生成物：及时下载临时链接，使用本地文件作为持久结果。
-- 复用 dsh 能力：凭据、会话、附件、图片预览及文件交付；补充音视频播放展示。
+第一版连接用户运行的兼容网关，优先适配 CLIProxyAPI 的 `/v1` 接口，不共享或读取 Grok CLI 的 OAuth 刷新令牌。不提供账号、模型服务或免费额度。“all”是逐步覆盖能力的目标，不表示已支持 Grok 官网全部产品功能。
 
-## 接入方式
+| 功能 | 当前实现范围 |
+| --- | --- |
+| 模型目录 | `/models` 自动发现，分类为聊天、图片、视频、TTS、研究或未知，支持覆盖 |
+| 聊天提供方 | `grok-all` 路由，复用 dsh 官方 pi-ai 适配器处理流式响应与工具调用 |
+| 图片 | `grok_generate_image` 生成并保存 |
+| 视频 | `grok_generate_video` 提交，`grok_media_status` 查询并保存 |
+| 语音 | `grok_speak` 文字转语音并保存 |
+| 任务 | `grok_media_list`、`grok_media_retry_download`，会话隔离与持久记录 |
+| 展示 | 工具结果卡片；点击文件进入预览；MP4、MP3、WAV 侧栏播放器 |
 
-第一阶段面向兼容的 xAI / OpenAI 风格网关，优先适配 CLIProxyAPI 已实现的聊天、Images、视频任务和 TTS 接口。网关地址和凭据由用户自行配置。
+类别识别不等于验证可用，未知模型不自动进入聊天选择器。工具卡片显示该次调用记录，新视频状态需要再次查询。
 
-长期目标是逐步覆盖可接入的 Grok 能力。“all”表达项目方向，不保证已经覆盖 Grok 官网的全部产品功能。各接入方式的账号权限、模型能力、额度、参数和接口可能不同，需分别验证。
+**尚未实现：** 图片编辑、视频编辑/延长、自动后台轮询和完成通知、实时任务面板、语音识别、实时通话、直接 OAuth。实施方案见 [PLAN.md](PLAN.md)。
 
-不附带模型服务、账号或免费额度。不要求将凭据提交到仓库。
+## 安装与配置
 
-## 任务与文件设计
+兼容目标：dsh `0.2.0-rc.2`、Node.js `>=22.19.0`。其他版本尚未承诺兼容。尚未发布 npm，不能把 `npm install dsh-grok-all` 当作可用的发布安装方式。
 
-任务阶段包括提交、生成、下载和保存。上游未提供百分比时只显示阶段和已用时。生成成功但下载失败时，应重试下载，而非自动再次生成；提交结果未知时不得盲目重发可能产生费用的请求。
+从源码在独立 profile 试用：
 
-图片、视频和音频结果优先保存为本地文件，再向会话交付。临时 URL 不是最终持久存储。未完成任务应能在重启后恢复查询或下载；上游不提供取消时，“停止等待”不能表示已取消生成。
+```powershell
+git clone https://github.com/NingYuanLee/dsh-grok-all.git
+cd dsh-grok-all
+npm install --ignore-scripts
+dsh --profile grok-all-test --from-default-profile web --dump-config
+dsh plugin --profile grok-all-test add "$PWD"
+```
 
-## 开发与反馈
+在该 profile 的 `cordis.patch.yml` 添加配置覆盖：
 
-开发范围与验收计划见 [ROADMAP.md](ROADMAP.md)。欢迎通过本仓库 Issues 提交使用场景和建议。当前不提供安装命令；后续会在可安装版本完成验证后补充兼容版本、安装方法及发布说明。
+```yaml
+- id: grok-all
+  name: dsh-grok-all
+  config:
+    connection:
+      baseURL: http://127.0.0.1:8317/v1
+      apiKeyEnv: GROK_ALL_API_KEY
+      timeoutMs: 60000
+    media:
+      imageModel: grok-imagine-image-2.0
+      videoModel: grok-imagine-video-1.5
+      speechModel: grok-tts
+      dataDir: ''
+```
 
-计划 npm 包名：`dsh-grok-all`。**尚未发布或保留该 npm 名称。**
+调用密钥存入 dsh 凭据服务，或在启动进程的 `GROK_ALL_API_KEY` 环境变量提供。配置只填凭据引用，也可使用已有引用名称。不要把密钥写入 YAML 或仓库。连接和媒体字段可供 dsh 插件设置编辑。
 
-## 社区发现
+```powershell
+dsh --profile grok-all-test --no-open
+```
 
-按 [DeepSeek Harness 官方 README 的社区指引](https://github.com/deepseek-ai/deepseek-harness#community-and-support)，仓库使用 `dsh-plugin` Topic，便于社区发现。公开与 Topic 不代表官方认证，也不保证第三方目录立即收录。
+聊天模型选择 **Grok All** 下的模型；`grok_models` 查看分类或刷新。公网使用自己的 HTTPS 网关地址；`127.0.0.1` 指 dsh Host 所在电脑。
 
-Third-party community project. Not an official DeepSeek or xAI product.
+## 任务与文件
 
-本项目是第三方社区项目，非 DeepSeek 或 xAI 官方产品。
+- 创建请求不自动重试；提交超时标为未知，不盲目重复生成。
+- 视频保留原任务 ID；用查询工具获取进度并保存结果。
+- 临时结果及时下载，先写 `.part`，校验完成后改正式文件。
+- 下载失败使用重试下载工具，不重新生成。
+- 当前会话只看到自己的任务；重启保留记录。
+- 默认目录是 dsh home 下 `plugins/dsh-grok-all`，按连接和任务隔离，可改 `media.dataDir`。
+- 第三方媒体下载不携带网关密钥。任务记录可能保存签名 URL，请视为私有数据，不公开同步。
+- 文件删除、链接过期可能无法恢复。播放器加载完整字节，大文件受 dsh 预览限制，可用系统应用打开。
+
+## 开发与社区
+
+```powershell
+npm test
+npm run check
+npm pack --dry-run
+```
+
+待办见 [ROADMAP.md](ROADMAP.md)。仓库按 [dsh 官方社区指引](https://github.com/deepseek-ai/deepseek-harness#community-and-support) 添加 `dsh-plugin` Topic；欢迎通过 Issues 反馈。
+
+Third-party community project, not an official DeepSeek or xAI product. 非 DeepSeek 或 xAI 官方产品。npm 包名尚未发布或保留。

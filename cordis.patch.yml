@@ -1,0 +1,3 @@
+- insert:
+    - id: grok-all
+      name: dsh-grok-all
