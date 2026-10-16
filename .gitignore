@@ -10,5 +10,10 @@ auths/
 credentials/
 generated/
 downloads/
+.local/
+.grok/
+.grok-plans/
+.grok-designs/
+.grok-reviews/
 .DS_Store
 Thumbs.db
