@@ -22,6 +22,7 @@
 - 隔离 `DSH_HOME` 的全新 profile：`dsh plugin add <源码目录>` 0.7 秒完成，自动写入该 profile 的 `dsh.profile.bundles`，不需要手工编辑。
 - `npm pack` 产物（模拟已发布包）：`dsh plugin add <tgz>` 后启动成功，插件页显示组件 `grok-all` 运行中，客户端 bundle 正常加载并被 GUI 请求，配置页 8 个字段可读可存，聊天选择器出现 11 个 chat 模型，图片、视频、TTS 未混入。
 - `npm publish --dry-run --tag alpha` 通过：`prepublishOnly` 先跑测试与语法检查，再打包。未真正发布。
+- 公网仓库安装（提交 `4e96636`、标签 `v0.1.0-alpha.1`）：`dsh plugin add "git+https://github.com/NingYuanLee/dsh-grok-all.git"` 5.8 秒完成，插件组件运行中，客户端 bundle 被 GUI 请求，聊天选择器出现 11 个 chat 模型。
 - 本次修复：补 `LICENSE` 与 `license`/`author`/`homepage`；适配器注册失败的真实原因不再被通用提示覆盖并写入 warn 日志；`@deepseek-ai/dsh-llm` 由隐式依赖改为显式 devDependency；新增 `.gitattributes` 固定 LF；CI 增加 Windows 矩阵与发布门禁；测试断言捕获到的是官方 `LlmAdapter` 实例与 `providerInfo`。
 
 ## 当前限制与待验收
@@ -34,7 +35,7 @@
 - 图片编辑、视频编辑/延长、语音识别、实时语音、直接 OAuth 尚未实现。
 - 上游未提供完整能力元数据；规则识别不是端到端验证。特别是历史模型和研究类模型，不保证与普通 Agent 工具兼容。
 - 仅验证指定 dsh 版本。聊天协议复用官方适配器，并捕获其公开入口构建的适配器实例；依赖其注册约定，升级时必须重跑集成测试。
-- 未安装到日常 desktop profile，未迁移旧 `local-grok`；未发布 npm。
+- 未安装到日常 desktop profile；未迁移旧 `local-grok`；npm 账号注册受阻，发布到 npm 推迟，当前以仓库安装分发。
 
 ## 不公开的测试材料
 
