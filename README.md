@@ -30,6 +30,13 @@ Native Grok integration for DeepSeek Harness: model discovery, chat, image/video
 
 兼容目标：dsh `0.2.0-rc.2`、Node.js `>=22.19.0`。其他版本尚未承诺兼容。尚未发布 npm，不能把 `npm install dsh-grok-all` 当作可用的发布安装方式。
 
+npm 账号就绪前，也可以直接从仓库安装（pnpm 按 git 打包，不需要 npm 账号；仓库需可见）：
+
+```powershell
+dsh --profile grok-all-test --from-default-profile web --dump-config
+dsh plugin --profile grok-all-test add "git+https://github.com/NingYuanLee/dsh-grok-all.git"
+```
+
 从源码在独立 profile 试用：
 
 ```powershell
