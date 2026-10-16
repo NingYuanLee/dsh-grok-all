@@ -2,7 +2,7 @@
 
 本文记录面向使用者的变更。版本兼容范围与已验收能力见 [VALIDATION.md](VALIDATION.md)。
 
-## 0.1.0-alpha.1 — 2026-10-16（首次发布）
+## 0.1.0-alpha.1 — 2026-10-16（未发布）
 
 - 首个开发版：模型目录发现与分类、`grok-all` 原生聊天提供方、图片/视频/TTS 工具、持久任务与本地保存、Web 侧栏音视频播放、插件设置页。
 - 补充 MIT 许可证：新增 `LICENSE`、`package.json` 的 `license`/`author`/`homepage`。
@@ -12,3 +12,4 @@
 - 测试补全：断言捕获到的适配器是 `@deepseek-ai/dsh-llm` 的 `LlmAdapter` 实例，并校验 `providerInfo` 与 `listModels`。
 - `@deepseek-ai/dsh-llm` 由隐式依赖改为显式 `devDependencies`。
 - `publishConfig` 固定发布到官方 registry 并使用 `alpha` 标签。
+- npm 账号注册受阻，本版不发 npm：分发走仓库安装（`dsh plugin add git+https://…`）或 `npm pack` 产物（`dsh plugin add <tgz>` 实测可安装）。

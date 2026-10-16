@@ -4,7 +4,7 @@ Native Grok integration for DeepSeek Harness: model discovery, chat, image/video
 
 在 dsh 中统一使用 Grok：原生聊天提供方、自动分类模型、媒体生成和持久任务。
 
-**Early alpha / 早期开发版。未发布 npm 包。先使用独立测试 profile。实际验证情况见 [VALIDATION.md](VALIDATION.md)。**
+**Early alpha / 早期开发版。尚未发布 npm 包，当前从仓库安装（见下）。先使用独立测试 profile。实际验证情况见 [VALIDATION.md](VALIDATION.md)。**
 
 ## 定位与功能
 
@@ -28,16 +28,16 @@ Native Grok integration for DeepSeek Harness: model discovery, chat, image/video
 
 ## 安装与配置
 
-兼容目标：dsh `0.2.0-rc.2`、Node.js `>=22.19.0`。其他版本尚未承诺兼容。尚未发布 npm，不能把 `npm install dsh-grok-all` 当作可用的发布安装方式。
+兼容目标：dsh `0.2.0-rc.2`、Node.js `>=22.19.0`。其他版本尚未承诺兼容。npm 账号注册受阻，「发布到 npm」已推迟，`npm install dsh-grok-all` 目前不可用。
 
-npm 账号就绪前，也可以直接从仓库安装（pnpm 按 git 打包，不需要 npm 账号；仓库需可见）：
+**方式一：从仓库安装（推荐，不需要 npm 账号）**
 
 ```powershell
 dsh --profile grok-all-test --from-default-profile web --dump-config
 dsh plugin --profile grok-all-test add "git+https://github.com/NingYuanLee/dsh-grok-all.git"
 ```
 
-从源码在独立 profile 试用：
+**方式二：本地源码调试**
 
 ```powershell
 git clone https://github.com/NingYuanLee/dsh-grok-all.git
@@ -97,11 +97,7 @@ npm run check
 npm pack --dry-run
 ```
 
-`package.json` 的 `publishConfig` 已把发布目标固定为官方 registry 与 `alpha` 标签，本机 registry 指向镜像时也不会发错。发布前先 `npm login`：
-
-```powershell
-npm publish
-```
+npm 发布待账号可用后进行：`package.json` 的 `publishConfig` 已把目标固定为官方 registry 与 `alpha` 标签，届时 `npm login` 后 `npm publish` 即可。离线分发用 `npm pack` 产物，用户侧 `dsh plugin add <tgz>` 实测可安装。
 
 待办见 [ROADMAP.md](ROADMAP.md)。仓库按 [dsh 官方社区指引](https://github.com/deepseek-ai/deepseek-harness#community-and-support) 添加 `dsh-plugin` Topic；欢迎通过 Issues 反馈。
 
