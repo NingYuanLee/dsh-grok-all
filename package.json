@@ -1,6 +1,6 @@
 {
   "name": "dsh-grok-byapi",
-  "version": "0.1.0-local",
+  "version": "0.2.0-alpha.1",
   "displayName": "Grok ByAPI",
   "description": "通过api接入grok模型",
   "license": "MIT",
@@ -39,7 +39,8 @@
     "prepublishOnly": "npm test && npm run check"
   },
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=22.19.0",
+    "dsh": ">=0.2.0-rc.2 <0.3.0"
   },
   "repository": {
     "type": "git",
@@ -78,9 +79,9 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.0.4",
-    "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-llm-pi-ai": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-credentials": ">=0.2.0-rc.2 <0.3.0",
+    "@deepseek-ai/dsh-llm-pi-ai": ">=0.2.0-rc.2 <0.3.0",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2 <0.3.0",
     "@deepseek-ai/schemastery": "~3.18.4"
   },
   "devDependencies": {

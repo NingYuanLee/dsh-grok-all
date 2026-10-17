@@ -95,6 +95,7 @@ const ui = {
   label: { display: 'grid', gap: 6, color: 'var(--dsw-alias-label-secondary)', fontSize: 12 },
   control: { height: 36, boxSizing: 'border-box', font: 'inherit', fontSize: 13, padding: '0 12px', color: 'var(--dsw-alias-label-primary)', background: 'var(--dsw-alias-bg-layer-1)', border: '0.5px solid var(--dsw-alias-border-l2)', borderRadius: 'var(--dsw-radius-md, 12px)' },
   button: { height: 32, padding: '0 14px', font: 'inherit', fontSize: 13, color: 'var(--dsw-alias-label-primary)', background: 'var(--dsw-alias-bg-layer-1)', border: '0.5px solid var(--dsw-alias-border-l2)', borderRadius: 'var(--dsw-radius-sm, 8px)', cursor: 'pointer' },
+  danger: { height: 32, padding: '0 14px', font: 'inherit', fontSize: 13, color: 'var(--dsw-alias-state-error-primary, #c62828)', background: 'var(--dsw-alias-bg-layer-1)', border: '0.5px solid var(--dsw-alias-state-error-primary, #c62828)', borderRadius: 'var(--dsw-radius-sm, 8px)', cursor: 'pointer' },
   primary: { height: 32, padding: '0 14px', font: 'inherit', fontSize: 13, color: 'var(--dsw-alias-bg-base, #fff)', background: 'var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary))', border: 0, borderRadius: 'var(--dsw-radius-sm, 8px)', cursor: 'pointer' },
   row: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 12 },
@@ -117,18 +118,18 @@ const SIZE_UNITS = { '': 1, k: 1000, m: 1000000 };
 // 官方支持的思考强度：4.7/4.6 含 xhigh，4.5 三档，4.3 另有 none；这里列出全部可选值，勾选即声明。
 const ALL_EFFORTS = EFFORT_ORDER;
 const MEDIA_FIELDS = [
-  ['imageModel', '生成图片', '启用生成图片', ['grok-imagine-image']],
-  ['videoModel', '生成视频', '启用生成视频', ['grok-imagine-video']],
-  ['speechModel', '生成音频', '启用生成音频', ['grok-tts', 'grok-voice-tts']],
+  ['imageModel', '生成图片', ['grok-imagine-image']],
+  ['videoModel', '生成视频', ['grok-imagine-video']],
+  ['speechModel', '生成音频', ['grok-tts', 'grok-voice-tts']],
 ];
-function blankChatRow(isDefault = false) {
-  return { id: '', displayName: '', contextWindow: '', maxTokens: '', image: false, efforts: [], isDefault };
+function blankChatRow() {
+  return { id: '', displayName: '', contextWindow: '', maxTokens: '', image: false, efforts: [] };
 }
 function EffortPicker({ index, efforts, disabled, onChange }) {
   const [open, setOpen] = useState(false);
   const root = useRef(null);
   const selected = Array.isArray(efforts) ? efforts : [];
-  const summary = selected.length ? selected.join(', ') : '未设置';
+  const summary = selected.length ? selected.join('|') : '未设置';
   useEffect(() => {
     if (!open) return undefined;
     const close = event => {
@@ -138,11 +139,11 @@ function EffortPicker({ index, efforts, disabled, onChange }) {
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
   }, [open]);
-  return h('div', { ref: root, style: { position: 'relative', minWidth: 148 } },
+  return h('div', { ref: root, style: { position: 'relative' } },
     h('button', {
       type: 'button', disabled, 'aria-label': '思考强度 ' + index, 'aria-expanded': open ? 'true' : 'false',
       onClick: () => setOpen(value => !value),
-      style: { ...ui.control, height: 32, width: '100%', padding: '0 8px', textAlign: 'left', cursor: disabled ? 'default' : 'pointer' },
+      style: { ...ui.control, height: 32, width: 'auto', padding: '0 6px', fontSize: 11, whiteSpace: 'nowrap', textAlign: 'left', cursor: disabled ? 'default' : 'pointer' },
     }, summary),
     open ? h('div', {
       role: 'group', 'aria-label': '思考强度选项 ' + index,
@@ -214,7 +215,6 @@ export function GrokSettings(props) {
   const [nameOf, setNameOf] = useState({});
   const [specOf, setSpecOf] = useState({});
   const [rows, setRows] = useState(null);
-  const [mediaOn, setMediaOn] = useState({});
   const [loaded, setLoaded] = useState(form?.state?.value ? null : { connection: {}, media: {}, modelOverrides: [] });
   const [revision, setRevision] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -262,9 +262,8 @@ export function GrokSettings(props) {
     id: o.id, displayName: o.displayName || o.id,
     contextWindow: formatSize(o.contextWindow), maxTokens: formatSize(o.maxTokens),
     image: o.imageSupported === true, efforts: Array.isArray(o.reasoningEfforts) ? o.reasoningEfforts : [],
-    isDefault: (media.defaultModel || '') === o.id,
   }));
-  const rowList = rows || (savedRows.length ? savedRows : [blankChatRow(true)]);
+  const rowList = rows || (savedRows.length ? savedRows : [blankChatRow()]);
 
   const setCredential = async (ref, secret) => {
     const response = await remote?.credentials?.set(ref, secret);
@@ -272,7 +271,9 @@ export function GrokSettings(props) {
     return response.ok ? undefined : response.error?.message || '凭据写入失败';
   };
   const field = (section, key, label) => h('label', { key: section + key, style: ui.label }, label,
-    h('input', { type: 'text', value: value[section]?.[key] ?? '', disabled: busy,
+    h('input', { type: 'text', 'aria-label': label,
+      value: section === 'connection' && key === 'baseURL' ? resolveBaseURL(value) : (value[section]?.[key] ?? ''),
+      disabled: busy,
       onChange: event => setDraft({ ...value, [section]: { ...value[section], [key]: event.target.value } }),
       style: ui.control }));
   const setMedia = (key, patch) => setDraft({ ...value, media: { ...media, ...patch } });
@@ -283,27 +284,16 @@ export function GrokSettings(props) {
     const current = typeof media[key] === 'string' ? media[key] : '';
     return [...new Set([...(current ? [current] : []), ...saved, ...listed])];
   };
-  // 已保存的模型先回显。获取后再并入清单并去重；勾选只在选中模型后可用。
-  const mediaPicker = (key, label, enableLabel, prefixes) => {
+  // 能不能用只看有没有配上模型：选了 ID 即可用，选「不使用」即清空。
+  const mediaPicker = (key, label, prefixes) => {
     const options = mediaOptions(prefixes, key);
     const current = options.includes(media[key]) ? media[key] : '';
-    const enabled = !!current && mediaOn[key] === true;
-    return h('div', { key: 'media' + key, style: { display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'end' } },
-      h('label', { style: ui.label }, label,
-        h('select', { value: current, disabled: busy, 'aria-label': label,
-          onChange: event => {
-            setMedia(key, { [key]: event.target.value });
-            setMediaOn(state => ({ ...state, [key]: false }));
-          },
-          style: ui.control },
-          h('option', { value: '' }, options.length || discovered ? '不使用' : '先获取模型'),
-          ...options.map(id => h('option', { key: id, value: id }, id)))),
-      h('label', { style: { ...ui.label, display: 'flex', alignItems: 'center', gap: 6, height: 36 } },
-        h('input', {
-          type: 'checkbox', checked: enabled, disabled: busy || !current, 'aria-label': enableLabel,
-          onChange: event => setMediaOn(state => ({ ...state, [key]: event.target.checked })),
-        }),
-        '启用'));
+    return h('label', { key: 'media' + key, style: ui.label }, label,
+      h('select', { value: current, disabled: busy, 'aria-label': label,
+        onChange: event => setMedia(key, { [key]: event.target.value }),
+        style: ui.control },
+        h('option', { value: '' }, options.length || discovered ? '不使用' : '先获取模型'),
+        ...options.map(id => h('option', { key: id, value: id }, id))));
   };
 
   const chatIdOptions = exclude => {
@@ -318,7 +308,6 @@ export function GrokSettings(props) {
   async function discover(source) {
     const current = source === undefined ? value : source;
     const baseURL = resolveBaseURL(current);
-    const mediaNow = current?.media || {};
     setDiscovering(true); setMessage(''); setDiscoverNotice(null);
     try {
       const api = remote?.llm;
@@ -359,15 +348,8 @@ export function GrokSettings(props) {
         id: o.id, displayName: o.displayName || names.get(o.id) || o.id,
         contextWindow: formatSize(o.contextWindow), maxTokens: formatSize(o.maxTokens),
         image: o.imageSupported !== false && (o.imageSupported === true || defaultImageSupported(o.id)), efforts: Array.isArray(o.reasoningEfforts) && o.reasoningEfforts.length ? o.reasoningEfforts : defaultReasoningEfforts(o.id),
-        isDefault: (mediaNow.defaultModel || '') === o.id,
       }));
-      setRows(nextRows.length ? nextRows : [blankChatRow(true)]);
-      const nextMediaOn = {};
-      for (const [key, , , prefixes] of MEDIA_FIELDS) {
-        const options = models.map(m => m.id).filter(id => prefixes.some(prefix => id === prefix || id.startsWith(prefix)));
-        nextMediaOn[key] = options.includes(mediaNow[key]);
-      }
-      setMediaOn(nextMediaOn);
+      setRows(nextRows.length ? nextRows : [blankChatRow()]);
       setDiscoverNotice({ ok: models.length > 0, text: '已从 Grok ByAPI 发现 ' + models.length + ' 个模型，按需添加行并保存。' });
       if (models.length) setChatOpen(true);
     } catch (error) {
@@ -384,7 +366,7 @@ export function GrokSettings(props) {
       id: candidate, displayName: nameOf[candidate] || candidate,
       contextWindow: spec.contextWindow ? formatSize(spec.contextWindow) : '',
       maxTokens: spec.maxTokens ? formatSize(spec.maxTokens) : '',
-      image: spec.image !== false && (spec.image === true || defaultImageSupported(candidate)), efforts: Array.isArray(spec.efforts) ? spec.efforts : defaultReasoningEfforts(candidate), isDefault: rowList.length === 0,
+      image: spec.image !== false && (spec.image === true || defaultImageSupported(candidate)), efforts: Array.isArray(spec.efforts) ? spec.efforts : defaultReasoningEfforts(candidate),
     }]);
   }
   const removeRow = index => setRows(rowList.filter((_, i) => i !== index));
@@ -457,7 +439,7 @@ export function GrokSettings(props) {
   }
   async function saveConnection() {
     if (keyFailure) { setMessage(keyFailure); return; }
-    const connection = { ...(value.connection || {}), apiKeyEnv: KEY_REF, apiKey: '' };
+    const connection = { ...(value.connection || {}), baseURL: resolveBaseURL(value), apiKeyEnv: KEY_REF, apiKey: '' };
     const saved = await commit([{ op: 'set', path: ['connection'], value: connection }], '地址已保存' + (keyDraft.trim() ? '，正在写入密钥。' : '。'));
     if (!saved) return;
     if (keyDraft.trim()) {
@@ -472,23 +454,24 @@ export function GrokSettings(props) {
     const pending = overrideOps();
     if (pending === undefined) return;
     const savingRows = configuredRows();
-    const defaultRow = savingRows.find(r => r.isDefault) || savingRows[0];
-    const kept = (value.modelOverrides || []).filter(x => !savingRows.some(r => r.id === x.id));
-    const nextRows = [...kept, ...savingRows.map(row => {
+    // 表格就是对话模型名单。删掉的行不能再并回，否则选择器和再次进入详情仍是全部模型。
+    const nextRows = savingRows.map(row => {
       const previous = (value.modelOverrides || []).find(x => x.id === row.id) || {};
       return { ...previous, id: row.id, displayName: row.displayName || row.id, imageSupported: !!row.image,
         contextWindow: parseSize(row.contextWindow), maxTokens: parseSize(row.maxTokens), reasoningEfforts: row.efforts };
-    })];
+    });
     await commit([
       { op: 'set', path: ['modelOverrides'], value: nextRows },
-      { op: 'set', path: ['media', 'defaultModel'], value: defaultRow ? defaultRow.id : '' },
+      { op: 'unset', path: ['media', 'defaultModel'] },
     ], '已保存 ' + savingRows.length + ' 条对话模型。');
   }
   async function saveMedia() {
     const nextMedia = { ...media };
-    for (const [key, , , prefixes] of MEDIA_FIELDS) {
+    delete nextMedia.defaultModel;
+    for (const [key, , prefixes] of MEDIA_FIELDS) {
       const options = mediaOptions(prefixes, key);
-      nextMedia[key] = mediaOn[key] === true && options.includes(media[key]) ? media[key] : '';
+      const chosen = typeof media[key] === 'string' ? media[key] : '';
+      nextMedia[key] = chosen && options.includes(chosen) ? chosen : '';
     }
     await commit([{ op: 'set', path: ['media'], value: nextMedia }], '媒体模型已保存。');
   }
@@ -524,26 +507,27 @@ export function GrokSettings(props) {
       h('button', { type: 'button', 'aria-expanded': chatOpen ? 'true' : 'false', onClick: () => setChatOpen(open => !open), style: { ...ui.row, width: '100%', background: 'transparent', border: 0, color: 'inherit', cursor: 'pointer', padding: 0 } },
         h('h3', { style: ui.title }, (chatOpen ? '▾ ' : '▸ ') + '对话模型')),
       chatOpen ? h('p', { style: ui.hint }, '这里配置的模型会出现在对话右下角。模型弹窗里的本提供商只读。生成结果默认保存在 ~/.dsh/plugins/dsh-grok-byapi。') : null,
-      chatOpen ? h('p', { style: ui.hint }, discovered ? '已获取 ' + ids.length + ' 个模型。' : '已有一行默认配置。先获取模型，下拉才会出现可选项。') : null,
+      chatOpen ? h('p', { style: ui.hint }, discovered ? '已获取 ' + ids.length + ' 个模型。' : '已有一行空配置。先获取模型，下拉才会出现可选项。') : null,
       chatOpen ? h('div', { style: { overflow: 'visible' } },
         h('table', { style: ui.table },
-          h('thead', null, h('tr', null, ...['默认', '模型 ID', '显示名称', '图片', '上下文', '最大输出', '思考强度', ''].map(label => h('th', { key: label || 'actions', style: ui.head }, label)))),
+          h('thead', null, h('tr', null, ...['', '模型 ID', '显示名称', '图片', '上下文', '最大输出', '思考强度'].map(label => h('th', { key: label || 'actions', style: ui.head }, label)))),
           h('tbody', null, ...rowList.map((row, index) => h('tr', { key: index },
-            h('td', { style: cell }, h('input', { type: 'radio', name: 'grok-byapi-default-model', checked: !!row.isDefault, 'aria-label': '默认模型 ' + (row.id || index), onChange: () => setRows(rowList.map((r, i) => ({ ...r, isDefault: i === index }))) })),
+            h('td', { style: cell }, h('button', {
+              type: 'button', disabled: busy,
+              'aria-label': '删除第 ' + (index + 1) + ' 行', onClick: () => removeRow(index), style: ui.danger,
+            }, '删除')),
             h('td', { style: cell }, h('select', { value: row.id, disabled: busy, 'aria-label': '模型 ID ' + index, onChange: event => pickRowModel(index, event.target.value), style: cellInput },
               h('option', { value: '' }, chatOptions(row.id).length ? '选择模型' : '先获取模型'),
               ...chatOptions(row.id).map(id => h('option', { key: id, value: id }, id)))),
             h('td', { style: cell }, h('input', { type: 'text', value: row.displayName ?? '', disabled: busy, 'aria-label': '显示名称 ' + index, onChange: event => updateRow(index, { displayName: event.target.value }), style: { ...cellInput, width: 120 } })),
             h('td', { style: cell }, h('input', { type: 'checkbox', checked: !!row.image, disabled: busy, 'aria-label': '支持图片 ' + index, onChange: event => updateRow(index, { image: event.target.checked }) })),
-            h('td', { style: cell }, h('input', { type: 'text', value: row.contextWindow ?? '', disabled: busy, placeholder: '500K', 'aria-label': '上下文 ' + index, onChange: event => updateRow(index, { contextWindow: event.target.value }), style: { ...cellInput, width: 84 } })),
-            h('td', { style: cell }, h('input', { type: 'text', value: row.maxTokens ?? '', disabled: busy, placeholder: '32K', 'aria-label': '最大输出 ' + index, onChange: event => updateRow(index, { maxTokens: event.target.value }), style: { ...cellInput, width: 84 } })),
-            h('td', { style: cell }, h(EffortPicker, { index, efforts: row.efforts, disabled: busy, onChange: efforts => updateRow(index, { efforts }) })),
-            h('td', { style: cell }, index === rowList.length - 1
-              ? h('button', { type: 'button', disabled: busy || !discovered, 'aria-label': '添加模型行', onClick: addRow, style: ui.button }, '添加')
-              : h('button', { type: 'button', disabled: busy, 'aria-label': '删除第 ' + (index + 1) + ' 行', onClick: () => removeRow(index), style: ui.button }, '删除'))))),
-          rowList.length ? null : h('tfoot', null, h('tr', null, h('td', { colSpan: 8, style: { ...cell, color: 'var(--dsw-alias-label-tertiary)' } }, '还没有配置行。'))))) : null,
-      chatOpen ? h('div', { style: { ...ui.row, justifyContent: 'flex-end' } },
-        h('button', { type: 'button', disabled: busy || form?.state?.writable === false, onClick: saveChat, style: ui.primary }, busy ? '保存中…' : '保存对话模型')) : null),
+            h('td', { style: cell }, h('input', { type: 'text', value: row.contextWindow ?? '', disabled: busy, placeholder: '500K', 'aria-label': '上下文 ' + index, onChange: event => updateRow(index, { contextWindow: event.target.value }), style: { ...cellInput, width: 64 } })),
+            h('td', { style: cell }, h('input', { type: 'text', value: row.maxTokens ?? '', disabled: busy, placeholder: '32K', 'aria-label': '最大输出 ' + index, onChange: event => updateRow(index, { maxTokens: event.target.value }), style: { ...cellInput, width: 64 } })),
+            h('td', { style: cell }, h(EffortPicker, { index, efforts: row.efforts, disabled: busy, onChange: efforts => updateRow(index, { efforts }) }))))),
+          rowList.length ? null : h('tfoot', null, h('tr', null, h('td', { colSpan: 7, style: { ...cell, color: 'var(--dsw-alias-label-tertiary)' } }, '还没有配置行。'))))) : null,
+      chatOpen ? h('div', { style: ui.row },
+        h('button', { type: 'button', disabled: busy || !discovered, 'aria-label': '添加模型行', onClick: addRow, style: ui.button }, '添加'),
+        h('button', { type: 'button', disabled: busy || form?.state?.writable === false, onClick: saveChat, style: { ...ui.primary, marginLeft: 'auto' } }, busy ? '保存中…' : '保存对话模型')) : null),
     h('section', { style: ui.card },
       h('button', { type: 'button', 'aria-expanded': mediaOpen ? 'true' : 'false', onClick: () => setMediaOpen(open => !open), style: { ...ui.row, width: '100%', background: 'transparent', border: 0, color: 'inherit', cursor: 'pointer', padding: 0 } },
         h('h3', { style: ui.title }, (mediaOpen ? '▾ ' : '▸ ') + '媒体模型')),

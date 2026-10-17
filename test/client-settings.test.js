@@ -113,7 +113,7 @@ test('点获取模型后提示数量，媒体下拉只列同类模型', async ()
   assert.equal(current.seen[0].apiKey, undefined);
   const ids = walk(byLabel(tree, '生成图片')).filter(n => n.type === 'option').map(n => n.props.value);
   assert.deepEqual(ids, ['', 'grok-imagine-image-2.0']);
-  assert.equal(byLabel(tree, '启用生成图片').props.disabled, true);
+  assert.equal(byLabel(tree, '启用生成图片'), undefined);
 });
 
 test('获取模型把草稿密钥发给发现接口，不写进配置', async () => {
@@ -221,8 +221,8 @@ test('打开页面就有一行空的聊天模型', () => {
   assert.equal(model.props.value, '');
   assert.deepEqual(walk(model).filter(n => n.type === 'option').map(n => n.props.value), ['']);
   assert.equal(byLabel(tree, '生成图片').props.value, '');
-  assert.equal(byLabel(tree, '启用生成图片').props.disabled, true);
-  assert.equal(byLabel(tree, '启用生成图片').props.checked, false);
+  assert.equal(byLabel(tree, '启用生成图片'), undefined);
+  assert.equal(walk(tree).some(n => n.type === 'input' && n.props?.type === 'radio'), false);
 });
 
 test('聊天模型下拉不含图片/视频/语音模型', async () => {
@@ -235,7 +235,7 @@ test('聊天模型下拉不含图片/视频/语音模型', async () => {
   assert.ok(!options.includes('grok-tts'));
 });
 
-test('保存提交连接、媒体默认模型与模型覆盖', async () => {
+test('保存对话模型只提交覆盖，并清掉已无用的默认模型', async () => {
   const Client = loadClient();
   const calls = [];
   const current = await discoveredTree(Client, async (ops, revision) => { calls.push({ ops, revision }); return true; });
@@ -248,7 +248,62 @@ test('保存提交连接、媒体默认模型与模型覆盖', async () => {
   assert.equal(overrides.length, 1);
   assert.equal(overrides[0].id, 'grok-4.7');
   assert.equal(overrides[0].contextWindow, 500000);
-  assert.equal(ops.find(o => o.path[0] === 'media' && o.path[1] === 'defaultModel').value, 'grok-4.7');
+  assert.equal(ops.some(o => o.op === 'set' && o.path[0] === 'media' && o.path[1] === 'defaultModel'), false);
+  assert.deepEqual(ops.find(o => o.op === 'unset' && o.path[1] === 'defaultModel'), { op: 'unset', path: ['media', 'defaultModel'] });
+});
+
+test('删掉的对话模型不会在保存时被加回', async () => {
+  const Client = loadClient();
+  const calls = [];
+  const withTwo = {
+    connection: { baseURL: 'http://127.0.0.1:8317/v1', timeoutMs: 60000 },
+    media: { defaultModel: 'grok-4.7' },
+    modelOverrides: [
+      { id: 'grok-4.7', displayName: 'Grok 4.7', imageSupported: true, contextWindow: 500000, maxTokens: 32768, reasoningEfforts: ['high'] },
+      { id: 'grok-4.5', displayName: 'Grok 4.5', imageSupported: true, contextWindow: 500000, maxTokens: 32768, reasoningEfforts: ['medium'] },
+    ],
+  };
+  const current = mount(Client, { state: withTwo, mutate: async (ops) => { calls.push(ops); return true; } });
+  openChat(current);
+  await buttonByText(current(), '获取模型').props.onClick();
+  byLabel(current(), '删除第 1 行').props.onClick();
+  await buttonByText(current(), '保存对话模型').props.onClick();
+  const overrides = calls[0].find(o => o.path[0] === 'modelOverrides').value;
+  assert.deepEqual(overrides.map(row => row.id), ['grok-4.5']);
+});
+
+test('删除按钮在每行最前，尺寸与添加一致，红字红边', () => {
+  const Client = loadClient();
+  const current = mount(Client, { state: {
+    connection: { baseURL: 'http://127.0.0.1:8317/v1' },
+    media: {},
+    modelOverrides: [
+      { id: 'grok-4.7', displayName: 'Grok 4.7', imageSupported: true, contextWindow: 500000, maxTokens: 32768, reasoningEfforts: ['high'] },
+      { id: 'grok-4.5', displayName: 'Grok 4.5', imageSupported: true, contextWindow: 500000, maxTokens: 32768, reasoningEfforts: ['medium'] },
+    ],
+  } });
+  openChat(current);
+  const tree = current();
+  const row = walk(tree).find(n => n.type === 'tr' && walk(n).some(c => c.props?.['aria-label'] === '删除第 1 行'));
+  const cells = [].concat(row.children).filter(n => n?.type === 'td');
+  assert.equal(cells[0].children[0].props['aria-label'], '删除第 1 行');
+  assert.equal(cells[1].children[0].props['aria-label'], '模型 ID 0');
+  const del = cells[0].children[0].props.style;
+  const add = buttonByText(tree, '添加').props.style;
+  assert.equal(del.height, add.height);
+  assert.equal(del.padding, add.padding);
+  assert.equal(del.fontSize, add.fontSize);
+  assert.equal(del.borderRadius, add.borderRadius);
+  assert.match(String(del.color), /error-primary/);
+  assert.match(String(del.border), /error-primary/);
+  assert.equal(walk(tree).some(n => n.props?.type === 'radio'), false);
+  assert.equal(byLabel(tree, '删除第 1 行').props.disabled, false);
+  assert.equal(byLabel(tree, '删除第 2 行').props.disabled, false);
+  assert.equal(byLabel(tree, '上下文 0').props.style.width, 64);
+  assert.equal(byLabel(tree, '最大输出 0').props.style.width, 64);
+  byLabel(tree, '删除第 2 行').props.onClick();
+  assert.equal(byLabel(current(), '删除第 2 行'), undefined);
+  assert.equal(byLabel(current(), '模型 ID 0').props.value, 'grok-4.7');
 });
 
 test('上下文/最大输出接受 M 与 K 后缀', async () => {
@@ -282,7 +337,10 @@ test('思考强度是多选选项', async () => {
   const current = await discoveredTree(Client);
   await buttonByText(current(), '添加').props.onClick();
   chatSelect(current()).props.onChange({ target: { value: 'grok-4.7' } });
-  buttonByText(current(), 'low, medium, high, xhigh').props.onClick();
+  const effort = buttonByText(current(), 'low|medium|high|xhigh');
+  assert.equal(effort.props.style.whiteSpace, 'nowrap');
+  assert.equal(effort.props.style.fontSize, 11);
+  effort.props.onClick();
   const efforts = walk(current()).filter(n => n.type === 'input' && String(n.props?.['aria-label'] || '').startsWith('思考强度 '));
   assert.deepEqual(efforts.map(n => n.props['aria-label']), ['思考强度 none 1', '思考强度 low 1', '思考强度 medium 1', '思考强度 high 1', '思考强度 xhigh 1']);
   efforts.find(n => n.props['aria-label'] === '思考强度 none 1').props.onChange({ target: { checked: true } });
@@ -372,4 +430,65 @@ test('保存时把密钥写入凭据库，配置里不留明文', async () => {
   await buttonByText(current(), '保存地址和密钥').props.onClick();
   assert.deepEqual(stored, [{ ref: 'GROK_ALL_API_KEY', value: 'saved-key' }]);
   assert.equal(byLabel(current(), 'API Key').props.value, '');
+});
+
+test('空地址回显默认值，保存写入同一地址', async () => {
+  const Client = loadClient();
+  const calls = [];
+  const current = mount(Client, {
+    state: { connection: { baseURL: '' }, media: {}, modelOverrides: [] },
+    mutate: async ops => { calls.push(ops); return true; },
+  });
+  assert.equal(byLabel(current(), 'API 地址').props.value, 'http://127.0.0.1:8317/v1');
+  await buttonByText(current(), '保存地址和密钥').props.onClick();
+  const connection = calls[0].find(op => op.path[0] === 'connection').value;
+  assert.equal(connection.baseURL, 'http://127.0.0.1:8317/v1');
+  assert.equal(connection.apiKey, '');
+});
+
+test('已保存的 API 地址原样回显', () => {
+  const Client = loadClient();
+  const current = mount(Client, { state: {
+    connection: { baseURL: 'https://gateway.example/v1' }, media: {}, modelOverrides: [],
+  } });
+  assert.equal(byLabel(current(), 'API 地址').props.value, 'https://gateway.example/v1');
+});
+
+test('未获取清单时保存媒体模型仍保留已选 ID', async () => {
+  const Client = loadClient();
+  const calls = [];
+  const current = mount(Client, {
+    state: {
+      connection: { baseURL: 'http://127.0.0.1:8317/v1' },
+      media: { imageModel: 'grok-imagine-image-2.0', videoModel: '', speechModel: '', defaultModel: 'grok-4.7' },
+      modelOverrides: [],
+    },
+    mutate: async ops => { calls.push(ops); return true; },
+  });
+  buttonByText(current(), '媒体模型').props.onClick();
+  assert.equal(byLabel(current(), '生成图片').props.value, 'grok-imagine-image-2.0');
+  assert.equal(byLabel(current(), '启用生成图片'), undefined);
+  await buttonByText(current(), '保存媒体模型').props.onClick();
+  const media = calls[0].find(op => op.path.length === 1 && op.path[0] === 'media').value;
+  assert.equal(media.imageModel, 'grok-imagine-image-2.0');
+  assert.equal('defaultModel' in media, false);
+});
+
+test('选不使用后再保存会清空该媒体模型', async () => {
+  const Client = loadClient();
+  const calls = [];
+  const current = mount(Client, {
+    state: {
+      connection: { baseURL: 'http://127.0.0.1:8317/v1' },
+      media: { imageModel: 'grok-imagine-image-2.0', videoModel: '', speechModel: '' },
+      modelOverrides: [],
+    },
+    mutate: async ops => { calls.push(ops); return true; },
+  });
+  buttonByText(current(), '媒体模型').props.onClick();
+  byLabel(current(), '生成图片').props.onChange({ target: { value: '' } });
+  assert.equal(byLabel(current(), '生成图片').props.value, '');
+  await buttonByText(current(), '保存媒体模型').props.onClick();
+  const media = calls[0].find(op => op.path.length === 1 && op.path[0] === 'media').value;
+  assert.equal(media.imageModel, '');
 });

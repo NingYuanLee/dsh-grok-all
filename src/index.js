@@ -28,7 +28,6 @@ export const Config = z.object({
     timeoutMs: z.number().min(1000).max(600000).default(60000),
   }).default({}).volatile(),
   media: z.object({
-    defaultModel: z.string().default(''),
     imageModel: z.string().default(''),
     videoModel: z.string().default(''),
     speechModel: z.string().default(''),
