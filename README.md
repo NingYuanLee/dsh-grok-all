@@ -29,7 +29,7 @@ Native Grok integration for DeepSeek Harness: model discovery, chat, image/video
 
 ## 安装与配置
 
-兼容目标：dsh `>=0.2.0-rc.2 <0.3.0`、Node.js `>=22.19.0`。自动测试基于 dsh `0.2.0-rc.2` 的 SDK；本版已在 dsh `0.2.1-rc.1` 桌面 profile 实际加载并调用工具，其他 0.2.x 版本尚未逐个验收。npm 账号注册受阻，「发布到 npm」已推迟，`npm install dsh-grok-byapi` 目前不可用。
+兼容目标：dsh `>=0.2.0-rc.2 <0.3.0`、Node.js `>=22.19.0`。dsh 加载插件时以 `engines.dsh` 判定兼容性（预发布版本参与比较），`peerDependencies` 只声明源码用到的 `@deepseek-ai/dsh-*` SDK 范围、不参与该门禁。自动测试基于 dsh `0.2.0-rc.2` 的 SDK；本版已在 dsh `0.2.1-rc.1` 桌面 profile 实际加载并调用工具，其他 0.2.x 版本尚未逐个验收。npm 账号注册受阻，「发布到 npm」已推迟，`npm install dsh-grok-byapi` 目前不可用。
 
 **方式一：从仓库安装（推荐，不需要 npm 账号）**
 
