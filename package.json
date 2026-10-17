@@ -1,7 +1,8 @@
 {
-  "name": "dsh-grok-all",
-  "version": "0.1.0-alpha.1",
-  "description": "Native Grok provider and media tools for DeepSeek Harness.",
+  "name": "dsh-grok-byapi",
+  "version": "0.1.0-local",
+  "displayName": "Grok ByAPI",
+  "description": "通过api接入grok模型",
   "license": "MIT",
   "author": "NingYuanLee",
   "type": "module",
@@ -9,14 +10,20 @@
   "exports": {
     ".": "./src/index.js",
     "./catalog": "./src/catalog.js",
-    "./media": "./src/media.js",
-    "./client": "./lib/client.js"
+    "./imagine": "./src/media-entry.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./build/locale/*.json": "./locale/build/*.json",
+    "./imagine/locale/*.json": "./locale/imagine/*.json",
+    "./package.json": "./package.json"
   },
   "files": [
     "src",
+    "icon.svg",
     "lib/client.js",
     "scripts/build-client.mjs",
     "cordis.patch.yml",
+    "locale/*.json",
     "LICENSE",
     "CHANGELOG.md",
     "README.md",
@@ -28,7 +35,7 @@
     "build": "node scripts/build-client.mjs",
     "prepack": "npm run build",
     "test": "node --test test/*.test.js",
-    "check": "node --check src/index.js && node --check src/catalog.js && node --check src/media.js && node --check src/client.js",
+    "check": "node --check src/index.js && node --check src/catalog.js && node --check src/media.js && node --check src/media-entry.js && node --check src/service.js && node --check src/client.js",
     "prepublishOnly": "npm test && npm run check"
   },
   "engines": {
@@ -36,11 +43,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NingYuanLee/dsh-grok-all.git"
+    "url": "git+https://github.com/NingYuanLee/dsh-grok-byapi.git"
   },
-  "homepage": "https://github.com/NingYuanLee/dsh-grok-all#readme",
+  "homepage": "https://github.com/NingYuanLee/dsh-grok-byapi#readme",
   "bugs": {
-    "url": "https://github.com/NingYuanLee/dsh-grok-all/issues"
+    "url": "https://github.com/NingYuanLee/dsh-grok-byapi/issues"
   },
   "keywords": [
     "dsh-plugin",
@@ -63,7 +70,8 @@
       "inject": [
         "@deepseek-ai/dsh-client-ui-tool",
         "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
-        "@deepseek-ai/dsh-client-ui-plugin-manager"
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
+        "@deepseek-ai/dsh-api-settings-controller"
       ],
       "platform": "web"
     }
@@ -79,5 +87,6 @@
     "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
     "esbuild": "^0.28.2",
     "react": "^18.3.1"
-  }
+  },
+  "icon": "./icon.svg"
 }

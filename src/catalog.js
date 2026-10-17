@@ -1,4 +1,24 @@
 const CATEGORIES = new Set(['chat', 'image', 'video', 'speech', 'research', 'unknown']);
+const EFFORTS = new Set(['none', 'low', 'medium', 'high', 'xhigh']);
+
+export function defaultReasoningEfforts(id) {
+  if (/^grok-4\.[67](?:-|$)/.test(id)) return ['low', 'medium', 'high', 'xhigh'];
+  if (/^grok-4\.5(?:-|$)/.test(id)) return ['low', 'medium', 'high'];
+  if (/^grok-4\.3(?:-|$)/.test(id)) return ['none', 'low', 'medium', 'high', 'xhigh'];
+  return [];
+}
+
+// xAI 文档写明 text, image → text 的聊天模型。旧的 grok-3 系列没有图片输入。
+export function defaultImageSupported(id) {
+  return /^grok-4\.[34567](?:-|$)/.test(id) || /^grok-4\.20(?:-|$)/.test(id) || /^grok-build-0\.1(?:-|$)/.test(id);
+}
+
+export function defaultContextWindow(id) {
+  if (/^grok-4\.3(?:-|$)/.test(id)) return 1000000;
+  if (/^grok-4\.[567](?:-|$)/.test(id)) return 500000;
+  if (/^grok-build-0\.1(?:-|$)/.test(id)) return 256000;
+  return 262144;
+}
 
 export function normalizeBaseURL(value) {
   const url = new URL(value);
@@ -11,32 +31,49 @@ export function normalizeBaseURL(value) {
 
 function positive(value) { return Number.isSafeInteger(value) && value > 0 ? value : undefined; }
 
+const HOME = process.env.HOME || process.env.USERPROFILE || '';
+
+// 结果保存目录：支持 ~ 与 %VAR% / ${VAR} / $VAR 写法，用户可以直接粘贴 Windows 路径。
+export function expandPath(input) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  return raw
+    .replace(/^~(?=$|[\\/])/, HOME)
+    .replace(/%([A-Za-z_][A-Za-z0-9_]*)%/g, (whole, name) => process.env[name] ?? whole)
+    .replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (whole, name) => process.env[name] ?? whole)
+    .replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (whole, name) => process.env[name] ?? whole);
+}
+
 export function classifyModel(raw, override = {}) {
   const id = typeof raw === 'string' ? raw : raw?.id;
   if (typeof id !== 'string' || !id.trim() || id.length > 200) throw new Error('无效模型 ID');
-  let category = 'unknown';
-  if (/^grok-imagine-image(?:-|$)/.test(id)) category = 'image';
-  else if (/^grok-imagine-video(?:-|$)/.test(id)) category = 'video';
-  else if (/^grok-(?:tts|voice-tts)(?:-|$)/.test(id)) category = 'speech';
-  else if (/^grok-4\.20-multi-agent(?:-|$)/.test(id)) category = 'research';
-  else if (/^grok-(?:4\.[3567](?:-|$)|build-0\.1$|composer-2\.5-fast$|3-mini(?:-fast)?$|4\.20-0309-(?:non-)?reasoning$)/.test(id)) category = 'chat';
-  const source = override.category ? 'override' : category === 'unknown' ? 'unknown' : 'known-rule';
+  // 类型只看模型 ID：image 是生图，video 是视频，tts 是音频，其余都是聊天模型。
+  const key = id.toLowerCase();
+  let category = key.includes('image') ? 'image' : key.includes('video') ? 'video' : key.includes('tts') ? 'speech' : 'chat';
+  // 只要给了覆盖项（不限于 category）就算显式配置，便于界面标出"已配"。
+  const overridden = Object.keys(override).length > 0;
+  const source = overridden ? 'override' : 'known-rule';
   if (override.category) {
     if (!CATEGORIES.has(override.category)) throw new Error('无效模型类别');
     category = override.category;
   }
   const spec = typeof raw === 'object' && raw !== null ? raw : {};
-  const is47 = /^grok-4\.7(?:-|$)/.test(id);
-  const is46 = /^grok-4\.6(?:-|$)/.test(id);
-  const is45 = /^grok-4\.5(?:-|$)/.test(id);
-  const efforts = override.reasoningEfforts ?? ((is47 || is46) ? ['low', 'medium', 'high', 'xhigh'] : is45 ? ['low', 'medium', 'high'] : []);
-  if (!Array.isArray(efforts) || efforts.some(x => !['low', 'medium', 'high', 'xhigh'].includes(x))) throw new Error('无效思考等级');
-  const input = override.input ?? spec.inputModalities ?? ((is47 || is46 || is45) ? ['text', 'image'] : ['text']);
+  // 空数组=显式声明"不支持思考等级"；未提供才回落到已知规则。
+  // 依据 xAI 文档（2026-10）：4.7/4.6 含 xhigh；4.5 实际可用 low/medium/high；4.3 另支持 none。
+  const efforts = Array.isArray(override.reasoningEfforts) ? override.reasoningEfforts : defaultReasoningEfforts(id);
+  if (!Array.isArray(efforts) || efforts.some(x => !EFFORTS.has(x))) throw new Error('无效思考等级');
+  // 图片支持优先级：显式 imageSupported > 完整 input 数组 > 上游声明 > 既有已知规则。
+  // 显式布尔只负责切换图片，文本永远保留，避免用户把文本能力一起关掉。
+  const upstreamInput = spec.inputModalities ?? spec.input_modalities ?? spec.modalities;
+  const defaultInput = Array.isArray(upstreamInput) ? upstreamInput : (defaultImageSupported(id) ? ['text', 'image'] : ['text']);
+  const input = typeof override.imageSupported === 'boolean'
+    ? (override.imageSupported ? [...new Set(['text', 'image', ...defaultInput.filter(x => x !== 'text')])] : ['text'])
+    : (override.input ?? defaultInput);
   if (!Array.isArray(input) || input.length === 0 || input.some(x => !['text', 'image'].includes(x))) throw new Error('无效输入模态');
   return {
-    id, name: override.name || spec.name || id, category, source,
+    id, name: override.displayName || override.name || spec.name || id, category, source,
     verified: false,
-    contextWindow: positive(override.contextWindow) ?? positive(spec.contextWindow) ?? positive(spec.context_window) ?? ((is47 || is46 || is45) ? 500000 : 262144),
+    contextWindow: positive(override.contextWindow) ?? positive(spec.contextWindow) ?? positive(spec.context_window) ?? defaultContextWindow(id),
     maxTokens: positive(override.maxTokens) ?? positive(spec.maxTokens) ?? positive(spec.max_output_tokens) ?? 32768,
     input, reasoningEfforts: efforts,
   };
@@ -53,9 +90,11 @@ export function readCatalog(body, overrides = []) {
   });
 }
 
-export function chatModels(catalog) {
-  return catalog.filter(x => x.category === 'chat').map(x => ({
+export function chatModels(catalog, overrides = []) {
+  const selected = new Set(overrides.map(row => row?.id).filter(Boolean));
+  if (!selected.size) return [];
+  return catalog.filter(x => selected.has(x.id) && x.category === 'chat').map(x => ({
     id: x.id, name: x.name, contextWindow: x.contextWindow, maxTokens: x.maxTokens, input: x.input,
-    ...(x.reasoningEfforts.length ? { reasoningEfforts: Object.fromEntries(x.reasoningEfforts.map(e => [e, e])) } : {}),
+    ...(x.reasoningEfforts.length ? { reasoningEfforts: Object.fromEntries(x.reasoningEfforts.map(e => [e === 'none' ? 'off' : e, e === 'none' ? null : e])) } : {}),
   }));
 }

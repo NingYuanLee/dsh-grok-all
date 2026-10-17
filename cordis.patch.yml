@@ -1,3 +1,5 @@
 - insert:
-    - id: grok-all
-      name: dsh-grok-all
+    - id: grok-byapi
+      name: dsh-grok-byapi
+    - id: dsh-grok-imagine
+      name: dsh-grok-byapi/imagine

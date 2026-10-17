@@ -9,7 +9,7 @@
 - 独立 headless profile：模型实际调用 `grok_models` 工具并继续回答成功。发现 20 个模型：chat 11、image 3、video 3、speech 2、research 1；未声称每个模型都已可用性验证。
 - 独立 headless profile：调用图片工具，真实生成 1 张 JPEG 并自动保存本地。
 - 媒体模块真实请求：TTS 返回 MP3 并保存；2 秒视频提交、查询至 `done`/100%，下载保存为 MP4，插件状态为 `saved`。
-- 独立 Web profile：前端实际加载；聊天选择器显示 Grok All 分组，只有 11 个聊天模型，没有图片、视频和 TTS。
+- 独立 Web profile：前端实际加载；聊天选择器显示 Grok 分组，只有 11 个聊天模型，没有图片、视频和 TTS。
 - 独立 Web profile：插件详情的配置入口、字段显示与保存成功。真实将测试 profile 的超时改为 31000ms 并回读确认。
 - 独立 Web profile：工具调用记录展开后，专用 Grok 模型卡片显示 20 个模型的分类。
 - 独立 Web profile：通过 dsh 文件交付打开本地 MP4 与 MP3，在插件侧栏播放器点击播放。视频时长 2.041667 秒、音频时长 2.928 秒，均实际播放至结束，readyState=4，媒体 error=null。

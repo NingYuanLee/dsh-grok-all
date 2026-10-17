@@ -1,4 +1,4 @@
-# dsh-grok-all
+# dsh-grok-byapi
 
 Native Grok integration for DeepSeek Harness: model discovery, chat, image/video generation, TTS and durable local media tasks.
 
@@ -10,12 +10,12 @@ Native Grok integration for DeepSeek Harness: model discovery, chat, image/video
 
 安装一个插件，配置一套网关连接。聊天选择器只显示聊天模型；图片、视频、TTS 由对应工具调用。聊天模型调用媒体工具，无需切换成 Imagine 或 TTS。
 
-第一版连接用户运行的兼容网关，优先适配 CLIProxyAPI 的 `/v1` 接口，不共享或读取 Grok CLI 的 OAuth 刷新令牌。不提供账号、模型服务或免费额度。“all”是逐步覆盖能力的目标，不表示已支持 Grok 官网全部产品功能。
+第一版连接用户运行的兼容网关，优先适配 CLIProxyAPI 的 `/v1` 接口，不共享或读取 Grok CLI 的 OAuth 刷新令牌。不提供账号、模型服务或免费额度。名称表示通过 API 接入，不表示已支持 Grok 官网全部产品功能。
 
 | 功能 | 当前实现范围 |
 | --- | --- |
 | 模型目录 | `/models` 自动发现，分类为聊天、图片、视频、TTS、研究或未知，支持覆盖 |
-| 聊天提供方 | `grok-all` 路由，复用 dsh 官方 pi-ai 适配器处理流式响应与工具调用 |
+| 聊天提供方 | `xAI-CLIProxyAPI` 路由，复用 dsh 官方 pi-ai 适配器处理流式响应与工具调用 |
 | 图片 | `grok_generate_image` 生成并保存 |
 | 视频 | `grok_generate_video` 提交，`grok_media_status` 查询并保存 |
 | 语音 | `grok_speak` 文字转语音并保存 |
@@ -28,32 +28,32 @@ Native Grok integration for DeepSeek Harness: model discovery, chat, image/video
 
 ## 安装与配置
 
-兼容目标：dsh `0.2.0-rc.2`、Node.js `>=22.19.0`。其他版本尚未承诺兼容。npm 账号注册受阻，「发布到 npm」已推迟，`npm install dsh-grok-all` 目前不可用。
+兼容目标：dsh `0.2.0-rc.2`、Node.js `>=22.19.0`。其他版本尚未承诺兼容。npm 账号注册受阻，「发布到 npm」已推迟，`npm install dsh-grok-byapi` 目前不可用。
 
 **方式一：从仓库安装（推荐，不需要 npm 账号）**
 
 ```powershell
 dsh --profile grok-all-test --from-default-profile web --dump-config
-dsh plugin --profile grok-all-test add "git+https://github.com/NingYuanLee/dsh-grok-all.git"
+dsh plugin --profile grok-all-test add "git+https://github.com/NingYuanLee/dsh-grok-byapi.git"
 ```
 
 **方式二：本地源码调试**
 
 ```powershell
-git clone https://github.com/NingYuanLee/dsh-grok-all.git
-cd dsh-grok-all
+git clone https://github.com/NingYuanLee/dsh-grok-byapi.git
+cd dsh-grok-byapi
 npm install --ignore-scripts
 dsh --profile grok-all-test --from-default-profile web --dump-config
 dsh plugin --profile grok-all-test add "$PWD"
 ```
 
-`--dump-config` 只创建 profile 目录并打印组合后的配置，不启动服务。`dsh plugin add` 会自动把插件写进该 profile 的 `dsh.profile.bundles`，不需要手动编辑；卸载用 `dsh plugin --profile grok-all-test remove dsh-grok-all`。
+`--dump-config` 只创建 profile 目录并打印组合后的配置，不启动服务。`dsh plugin add` 会自动把插件写进该 profile 的 `dsh.profile.bundles`，不需要手动编辑；卸载用 `dsh plugin --profile grok-all-test remove dsh-grok-byapi`。
 
 在该 profile 的 `cordis.patch.yml` 添加配置覆盖：
 
 ```yaml
-- id: grok-all
-  name: dsh-grok-all
+- id: grok-byapi
+  name: dsh-grok-byapi
   config:
     connection:
       baseURL: http://127.0.0.1:8317/v1
@@ -72,7 +72,7 @@ dsh plugin --profile grok-all-test add "$PWD"
 dsh --profile grok-all-test --no-open
 ```
 
-聊天模型选择 **Grok All** 下的模型；`grok_models` 查看分类或刷新。公网使用自己的 HTTPS 网关地址；`127.0.0.1` 指 dsh Host 所在电脑。
+聊天模型选择 **Grok** 下的模型；`grok_models` 查看分类或刷新。公网使用自己的 HTTPS 网关地址；`127.0.0.1` 指 dsh Host 所在电脑。
 
 ## 任务与文件
 
@@ -81,7 +81,7 @@ dsh --profile grok-all-test --no-open
 - 临时结果及时下载，先写 `.part`，校验完成后改正式文件。
 - 下载失败使用重试下载工具，不重新生成。
 - 当前会话只看到自己的任务；重启保留记录。
-- 默认目录是 dsh home 下 `plugins/dsh-grok-all`，按连接和任务隔离，可改 `media.dataDir`。
+- 默认目录是 dsh home 下 `plugins/dsh-grok-byapi`，按连接和任务隔离，可改 `media.dataDir`。
 - 第三方媒体下载不携带网关密钥。任务记录可能保存签名 URL，请视为私有数据，不公开同步。
 - 文件删除、链接过期可能无法恢复。播放器加载完整字节，大文件受 dsh 预览限制，可用系统应用打开。
 

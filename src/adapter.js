@@ -17,7 +17,7 @@ export function buildChatAdapter(ctx, profile) {
       registerModelDiscovery() { return () => {}; },
     },
   };
-  applyPiAi(scope, PiAiConfig({ providers: { 'grok-all': profile } }));
+  applyPiAi(scope, PiAiConfig({ providers: { 'xAI-CLIProxyAPI': profile } }));
   if (!adapter) throw new Error('官方适配器未能创建 Grok 路由；请检查 dsh 兼容版本');
   return adapter;
 }
